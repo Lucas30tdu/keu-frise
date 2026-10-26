@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frise</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ececec;--surf:#fff;--ink:#222;--mute:#777;--line:#bbb;--acc:#444;--ok:#3a7d44;--ko:#b3402f;--back:#555;--backink:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1c1c;--surf:#2c2c2c;--ink:#eee;--mute:#999;--line:#555;--acc:#ccc;--ok:#6fb77a;--ko:#e07a6a;--back:#ddd;--backink:#222}}
+:root[data-theme="dark"]{--bg:#1c1c1c;--surf:#2c2c2c;--ink:#eee;--mute:#999;--line:#555;--acc:#ccc;--ok:#6fb77a;--ko:#e07a6a;--back:#ddd;--backink:#222}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-user-select:none}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:15px}
+#lives{letter-spacing:4px;color:var(--ko)}
+#msg{text-align:center;color:var(--mute);font-size:14px;min-height:20px;padding:0 16px}
+#msg.ok{color:var(--ok)}#msg.ko{color:var(--ko)}
+#strip{flex:1;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;padding:0 20px;perspective:900px;scrollbar-width:none}
+#strip::-webkit-scrollbar{display:none}
+#line{display:flex;align-items:center;margin:auto;position:relative;transform-style:preserve-3d}
+#line::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:var(--line);z-index:0}
+.slot{position:relative;z-index:1;flex:none;width:34px;height:130px;border:2px dashed var(--line);border-radius:10px;background:transparent;color:var(--mute);font-size:22px;cursor:pointer;margin:0 6px;transition:width .2s,background .2s,border-color .2s}
+.slot.big{width:140px}
+.slot.hot{width:60px;background:var(--surf);border-color:var(--acc);border-style:solid}
+.slot:disabled{opacity:.3}
+.t{position:relative;z-index:1;flex:none;width:116px;height:156px;margin:0 4px;perspective:700px;transform:rotateX(8deg) rotateY(var(--ty,0deg))}
+.in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.3,1.25,.5,1)}
+.t.fl .in{transform:rotateY(180deg)}
+.t.pend{animation:pop .45s}
+.t.bad{animation:sh .4s}
+@keyframes pop{from{transform:translateY(-40px) rotateX(55deg);opacity:0}}
+@keyframes sh{20%{margin-left:-2px;margin-right:10px}40%{margin-left:10px;margin-right:-2px}60%{margin-left:2px;margin-right:6px}}
+.f,.b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;background:var(--surf);box-shadow:0 8px 18px rgba(0,0,0,.22)}
+.b{transform:rotateY(180deg)}
+.b strong{font-size:24px;font-variant-numeric:tabular-nums}
+.t span.n{font-size:12px;line-height:1.3;color:var(--ink)}
+.f .q{font-size:30px;color:var(--mute);text-align:center}
+.cat{font-size:11px;color:var(--mute);display:flex;align-items:center;gap:5px}
+.cat i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+#stage{height:250px;display:flex;align-items:center;justify-content:center;perspective:800px;padding-bottom:16px;position:relative;z-index:5}
+#tilt{width:170px;height:210px;transform-style:preserve-3d;transform:translate(var(--dx,0px),var(--dy,0px)) scale(var(--s,1)) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .12s;touch-action:none;cursor:grab}
+#tilt.rel{transition:transform .5s}
+#tilt.gone{visibility:hidden;transition:none}
+#card{width:100%;height:100%}
+#card.deal{animation:deal .6s}
+@keyframes deal{from{transform:translateY(70px) rotateX(45deg);opacity:0}}
+#card .face{position:absolute;inset:0;border-radius:16px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;background:var(--surf);box-shadow:0 14px 28px rgba(0,0,0,.3);font-size:18px;line-height:1.3;font-weight:600}
+#card small{font-weight:400;color:var(--mute);font-size:13px}
+#card .cat{font-size:13px;font-weight:400}
+#end{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9}
+#end.on{display:flex}
+#end div{background:var(--surf);border-radius:16px;padding:28px;text-align:center;max-width:280px}
+#end h2{margin:0 0 8px}
+button.go{margin-top:16px;padding:12px 24px;border:0;border-radius:10px;background:var(--acc);color:var(--bg);font-size:16px;cursor:pointer}
+#joker{border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:999px;padding:6px 14px;font-size:14px;cursor:pointer}#joker:disabled{opacity:.4}
+#joker svg{width:18px;height:18px;vertical-align:-4px;margin-right:5px}
+.slot.hint{border-color:var(--ok);border-style:solid;animation:hint .8s infinite alternate}
+@keyframes hint{to{background:var(--surf);box-shadow:0 0 16px var(--ok)}}
+.t.win .b{animation:glow .9s}
+@keyframes glow{30%{box-shadow:0 0 0 4px var(--ok),0 0 34px var(--ok)}}
+.fx{position:fixed;left:0;top:0;pointer-events:none;z-index:20;border-radius:2px}
+header{align-items:flex-start;gap:8px}
+#pls{display:flex;gap:8px;flex:1}
+.pl{flex:1;padding:6px 10px;border-radius:10px;background:var(--surf);font-size:13px;line-height:1.4;border:2px solid transparent;opacity:.55}
+.pl.on{opacity:1;border-color:var(--acc)}
+.pl .h{color:var(--ko);letter-spacing:2px}
+#an{text-align:center;color:var(--mute);font-size:13px;font-style:italic;min-height:38px;padding:2px 20px 0}
+.t[data-o="0"] .b{box-shadow:0 8px 18px rgba(0,0,0,.22),inset 0 5px 0 #4aa8ff}
+.t[data-o="1"] .b{box-shadow:0 8px 18px rgba(0,0,0,.22),inset 0 5px 0 #ff7a59}
+#guess{position:fixed;left:0;right:0;bottom:0;height:250px;background:var(--bg);z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 28px env(safe-area-inset-bottom,0px)}
+#guess.on{display:flex}
+#gt{font-size:14px;color:var(--mute);text-align:center}
+#gv{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+#gr{width:100%}
+.gb{display:flex;gap:10px}
+button.alt{background:var(--surf);color:var(--ink);border:1px solid var(--line)}
+#ec button{margin:8px 6px 0}
+#snd{border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:16px;cursor:pointer}
+#snd.off{opacity:.45;text-decoration:line-through}
+#learn{position:fixed;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#learn.on{display:flex}
+#lh{display:flex;justify-content:space-between;align-items:center;padding:10px 16px}
+#ll{flex:1;overflow-y:auto;padding:0 16px 60px}
+.lr{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.lr b{font-size:16px;font-variant-numeric:tabular-nums}
+.lr p{margin:4px 0 0;font-size:13px;color:var(--mute);font-style:italic}
+.lr[data-r="ok"] b::after{content:" ✓";color:var(--ok)}
+.lr[data-r="ko"] b::after{content:" ✗";color:var(--ko)}
+#line{border-radius:16px;padding:8px 0}
+.t .f,.t .b{background:color-mix(in srgb,var(--ec,var(--surf)) 22%,var(--surf))}
+.em{position:absolute;top:8px;right:10px;font-size:20px;line-height:1}
+#card .em{top:14px;right:16px;font-size:30px}
+.er{font-size:10px;color:var(--mute)}
+.slot{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.slot em{font-style:normal;font-size:10px;color:var(--mute);writing-mode:vertical-rl;margin-top:6px}
+#home{position:fixed;inset:0;background:var(--bg);z-index:25;display:none;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 18px calc(env(safe-area-inset-bottom,0px) + 24px)}
+#home.on{display:block}
+#home h1{margin:8px 0 2px;font-size:30px}
+.sub{margin:0 0 6px;color:var(--mute);font-size:14px}
+#home h3{margin:18px 0 8px;font-size:15px}
+.row,.grid{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border-radius:14px;border:2px solid transparent;background:var(--surf);color:var(--ink);text-align:left;cursor:pointer;font:inherit;box-shadow:0 4px 10px rgba(0,0,0,.12),inset 0 4px 0 var(--c,transparent)}
+.tile.on{border-color:var(--acc);transform:translateY(-2px)}
+.tile .ti{font-size:26px}
+.tile small{color:var(--mute);font-size:12px;line-height:1.3}
+.tg{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;padding:12px;border-radius:14px;background:var(--surf);font-size:14px}
+.tg small{display:block;color:var(--mute);font-size:12px}
+.tg input{width:22px;height:22px;accent-color:var(--acc)}
+.play{width:100%;margin-top:20px;font-size:18px;padding:14px}
+
+:root{--bg:#f3f3f1;--surf:#fff;--ink:#111;--mute:#8b8b86;--line:#dcdcd7;--acc:#111;--ok:#2f8f46;--ko:#d0442f;--fluo:linear-gradient(180deg,#f7ffb0 0%,#e0ff3d 55%,#c8ff00 100%);--sh:0 18px 40px -14px rgba(0,0,0,.16)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0e0e;--surf:#1b1b1a;--ink:#f2f2ee;--mute:#8d8d88;--line:#2e2e2c;--acc:#f2f2ee;--ok:#c8ff00;--ko:#ff7a66;--back:#ddd;--backink:#222;--sh:0 18px 40px -14px rgba(0,0,0,.7)}}
+:root[data-theme="dark"]{--bg:#0e0e0e;--surf:#1b1b1a;--ink:#f2f2ee;--mute:#8d8d88;--line:#2e2e2c;--acc:#f2f2ee;--ok:#c8ff00;--ko:#ff7a66;--sh:0 18px 40px -14px rgba(0,0,0,.7)}
+body{font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font-family:inherit}
+header{padding:16px 20px 8px;align-items:flex-start}
+#pls{gap:22px}
+.pl{background:none;border:0;padding:0;opacity:.3;display:block}
+.pl.on{opacity:1}
+.pl small{display:block;font:500 11px ui-monospace,Menlo,monospace;color:var(--mute)}
+#pls:has(.pl[style]) .pl small::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pc);margin-right:6px;box-shadow:0 0 0 1px var(--line)}
+.pl .sc{display:block;font-size:40px;font-weight:800;line-height:1;letter-spacing:-.04em;margin:2px 0 4px}
+.pl .h{font-size:9px;letter-spacing:4px;color:var(--ink)}
+.pl em{font-style:normal;font-size:12px;font-weight:800;background:var(--fluo);color:#111;border-radius:99px;padding:1px 8px;margin-left:8px}
+#joker,#snd{border:0;background:var(--surf);box-shadow:0 8px 20px -8px rgba(0,0,0,.25);font-weight:600}
+#msg{font:500 12px ui-monospace,Menlo,monospace;color:var(--mute)}
+#msg.ok{color:var(--ink)}
+#an{font-style:normal;font-size:14px;color:var(--ink);opacity:.75}
+#line{border-radius:26px}
+.slot{border:1px solid var(--line);border-radius:16px;color:var(--mute)}
+.slot.hot{background:var(--fluo);border-color:transparent;width:64px;color:#111}
+.slot.hint{border-color:transparent;background:var(--fluo);color:#111}
+@keyframes hint{to{box-shadow:0 0 26px #c8ff00}}
+.slot em{font:500 10px ui-monospace,Menlo,monospace}
+.t .f,.t .b{border-radius:20px;box-shadow:var(--sh);background:color-mix(in srgb,var(--ec,var(--surf)) 12%,var(--surf))}
+.t[data-o="0"] .b{box-shadow:var(--sh),inset 0 4px 0 var(--ink)}
+.t[data-o="1"] .b{box-shadow:var(--sh),inset 0 4px 0 #c8ff00}
+.b strong{font-size:30px;font-weight:800;letter-spacing:-.04em}
+.t span.n{font-size:12.5px;font-weight:600;color:var(--ink)}
+.cat{font:500 10.5px ui-monospace,Menlo,monospace}
+.er{font:500 10px ui-monospace,Menlo,monospace}
+.f .q{font-size:34px;font-weight:800}
+#card .face{border-radius:28px;box-shadow:0 36px 70px -24px rgba(0,0,0,.4);font-size:19px;font-weight:800;letter-spacing:-.025em;line-height:1.18}
+#card small{font:500 11px ui-monospace,Menlo,monospace;letter-spacing:0}
+#card .cat{font-size:11px}
+@keyframes glow{30%{box-shadow:0 0 0 3px #c8ff00,0 0 44px #c8ff00}}
+#guess{background:var(--bg)}
+#gv{font-size:76px;font-weight:800;letter-spacing:-.05em;line-height:1}
+#gt{font:500 12px ui-monospace,Menlo,monospace}
+#gr{-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;background:var(--line);outline:none}
+#gr::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--fluo);box-shadow:0 8px 18px rgba(0,0,0,.3);border:0}
+#gr::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:#c8ff00;border:0}
+button.go{border-radius:99px;font-weight:700;background:var(--acc);color:var(--bg)}
+button.alt{border:0;background:var(--surf);color:var(--ink);box-shadow:0 8px 20px -8px rgba(0,0,0,.25)}
+#end{background:rgba(0,0,0,.3);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#end div{border-radius:30px;box-shadow:0 40px 80px -20px rgba(0,0,0,.4)}
+#end h2{font-size:42px;font-weight:800;letter-spacing:-.045em;margin:0 0 6px;line-height:1}
+#home h1{font-size:78px;font-weight:800;letter-spacing:-.055em;line-height:.95;margin:24px 0 10px}
+.sub{font:500 12px ui-monospace,Menlo,monospace}
+#home h3{font:500 12px ui-monospace,Menlo,monospace;color:var(--mute);margin:28px 0 10px}
+.tile{border:0;border-radius:24px;padding:16px;gap:4px;box-shadow:var(--sh)}
+.tile b{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.tile .ti{font-size:28px}
+.tile.on{background:var(--fluo);color:#111;transform:none;box-shadow:0 18px 40px -12px rgba(190,240,0,.55)}
+.tile.on small{color:#333}
+.tg{border-radius:24px;box-shadow:var(--sh);padding:16px}
+.tg input{-webkit-appearance:none;appearance:none;flex:none;width:54px;height:32px;border-radius:99px;background:var(--line);position:relative;transition:background .2s}
+.tg input::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:left .2s}
+.tg input:checked{background:var(--fluo)}
+.tg input:checked::after{left:26px}
+.play{background:var(--fluo);color:#111;font-size:20px;font-weight:800;padding:18px;box-shadow:0 22px 44px -14px rgba(190,240,0,.65)}
+#learn{background:var(--bg)}
+.lr{grid-template-columns:118px 1fr;border-top:1px solid var(--line)}
+.lr b{font-size:26px;font-weight:800;letter-spacing:-.04em}
+.lr p{font-style:normal}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}.fx{display:none}}
+</style>
+</head>
+<body>
+<header><div id="pls"></div><button id="joker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17L5 6l4.5 6L12 4l2.5 8L19 6l2 11z"/><path d="M3.5 20.5h17"/><circle cx="5" cy="5.5" r="1.3" fill="currentColor"/><circle cx="12" cy="3.5" r="1.3" fill="currentColor"/><circle cx="19" cy="5.5" r="1.3" fill="currentColor"/></svg>Joker</button><button id="snd" aria-label="Son et vibrations">♪</button></header>
+<div id="msg"></div>
+<div id="strip"><div id="line"></div></div>
+<div id="an"></div><div id="stage"><div id="tilt"><div id="card"><div class="face"><span class="em" id="ce"></span><span class="cat" id="cc"></span><span id="ct"></span><small>Glissez-moi sur la frise. La date est au verso.</small></div></div></div></div>
+<div id="guess"><div id="gt"></div><div id="gv"></div><input type="range" id="gr" step="1"><div class="gb"><button class="go" id="gok">Valider</button><button class="go alt" id="gsk">Passer</button></div></div>
+<div id="home"><div id="hm"></div></div>
+<div id="learn"><div id="lh"><b>Mode apprentissage</b><button class="go alt" id="lx" style="margin:0">Fermer</button></div><div id="ll"></div></div>
+<div id="end"><div id="ec"></div></div>
+<script>
+
+const H="Histoire",P="Pop culture",T="Technologie",S="Sciences",Z="Sport";
+const COL={[H]:"#8a6d3b",[P]:"#a24a8a",[T]:"#3b7aa0",[S]:"#4a8a5a",[Z]:"#b0602f"};
+const E=[["Fondation de Rome (légendaire)",-753,H],["Premiers Jeux olympiques antiques",-776,Z],["Construction de la pyramide de Khéops",-2560,H],["Assassinat de Jules César",-44,H],["Éruption du Vésuve sur Pompéi",79,H],["Couronnement de Charlemagne",800,H],["Bataille d’Hastings",1066,H],["Première croisade",1096,H],["Début de la peste noire en Europe",1347,H],["Imprimerie de Gutenberg",1450,T],["Prise de Constantinople",1453,H],["Colomb atteint l’Amérique",1492,H],["Mort de Louis XIV",1715,H],["Prise de la Bastille",1789,H],["Sacre de Napoléon",1804,H],["Bataille de Waterloo",1815,H],["Abolition de l’esclavage en France",1848,H],["Invention du téléphone",1876,T],["Inauguration de la tour Eiffel",1889,H],["Premiers Jeux olympiques modernes",1896,Z],["Premier vol des frères Wright",1903,T],["Naufrage du Titanic",1912,H],["Début de la Première Guerre mondiale",1914,H],["Découverte de la pénicilline",1928,S],["Sortie de Blanche-Neige (Disney)",1937,P],["Débarquement de Normandie",1944,H],["Structure de l’ADN décrite",1953,S],["Satellite Spoutnik 1",1957,T],["Premier pas sur la Lune",1969,S],["Concert de Woodstock",1969,P],["Sortie de Star Wars",1977,P],["Premier Tour de France",1903,Z],["Sortie de la Game Boy",1989,T],["Chute du mur de Berlin",1989,H],["Naissance du World Wide Web",1991,T],["France championne du monde de football",1998,Z],["Premier tome de Harry Potter",1997,P],["Euro en circulation",2002,H],["Lancement de YouTube",2005,T],["Lancement du premier iPhone",2007,T]];
+const $=id=>document.getElementById(id);
+const AN=["Selon la légende, Romulus aurait tracé les limites de la ville avant de tuer son frère Rémus.","Pendant ces Jeux, une trêve sacrée suspendait les guerres entre cités grecques.","Elle est restée le plus haut monument du monde pendant près de 4 000 ans.","César a été poignardé 23 fois, aux ides de mars, en plein Sénat.","Les cendres ont conservé les corps et les objets de Pompéi pendant des siècles.","Selon son biographe Éginhard, Charlemagne aurait été surpris par ce couronnement.","Cette bataille est racontée en images sur la tapisserie de Bayeux.","Elle est partie d’un appel du pape Urbain II à Clermont.","Elle aurait tué près d’un tiers de la population européenne.","Sa Bible, imprimée avec des caractères mobiles, fait partie des premiers grands livres imprimés en Europe.","Les Ottomans ont utilisé d’énormes canons pour briser les murailles.","Colomb pensait avoir atteint les Indes, et non un nouveau continent.","Il a régné 72 ans, le plus long règne de l’histoire de France.","Il ne restait que sept prisonniers dans la forteresse.","Napoléon a pris la couronne des mains du pape pour se la poser lui-même.","La bataille a duré une journée et a mis fin à l’Empire de Napoléon.","Victor Schœlcher a joué un rôle clé dans ce décret.","Bell a déposé son brevet quelques heures avant un concurrent.","Elle devait être démontée au bout de vingt ans.","Ils se sont tenus à Athènes, sous l’impulsion de Pierre de Coubertin.","Le premier vol n’a duré que 12 secondes.","Il n’y avait des canots que pour environ la moitié des passagers.","On pensait alors que la guerre serait finie avant Noël.","Fleming l’a découverte grâce à une boîte de culture oubliée pendant ses vacances.","C’est le premier long métrage d’animation en couleur de l’histoire.","Plus de 150 000 soldats alliés ont débarqué dès le premier jour.","Rosalind Franklin a réalisé la célèbre photo 51, essentielle à cette découverte.","Son simple bip radio a surpris le monde entier.","Armstrong a posé le pied sur la Lune environ six heures après l’alunissage.","Environ 400 000 personnes sont venues, bien plus que prévu.","Le film a failli ne jamais sortir tant le studio doutait de son succès.","Le premier vainqueur, Maurice Garin, a parcouru plus de 2 400 km.","Elle était livrée avec le jeu Tetris.","Une conférence de presse mal comprise a précipité l’ouverture des postes frontières.","Il a été inventé au CERN pour partager des documents entre chercheurs.","Les Bleus ont battu le Brésil 3-0 en finale.","Le manuscrit a été refusé par une douzaine d’éditeurs.","Douze pays l’ont adopté en billets et en pièces.","La première vidéo montre un visiteur au zoo de San Diego.","Steve Jobs l’a présenté comme trois produits en un."];
+E.forEach((e,i)=>e[3]=AN[i]);
+E.push(["Première Coupe du monde de football",1930,Z,"L’Uruguay l’a organisée et remportée, et peu d’équipes européennes ont fait le voyage."],["Naissance du basket-ball",1891,Z,"James Naismith a utilisé deux paniers à pêches fixés à une balustrade."],["Jesse Owens remporte quatre médailles d’or",1936,Z,"Il a brillé aux Jeux de Berlin, sous le régime nazi."],["Bob Beamon bat le record du saut en longueur",1968,Z,"Son saut de 8,90 m a dépassé l’ancien record de 55 cm."],["Nadia Comăneci obtient un 10 parfait",1976,Z,"Le tableau d’affichage ne pouvait pas afficher 10,00 et a indiqué 1,00."],["Premier Ironman à Hawaï",1978,Z,"Quinze concurrents ont pris le départ, et douze ont fini."],["Michael Phelps remporte huit médailles d’or à Pékin",2008,Z,"Il a battu le record de Mark Spitz, qui tenait depuis 1972."],
+["Apple I, premier ordinateur d’Apple",1976,T,"Il a été assemblé dans un garage et vendu sans boîtier, ni écran, ni clavier."],["Premier SMS envoyé",1992,T,"Le message disait simplement « Merry Christmas »."],["Lancement de Google",1998,T,"Le nom vient de « googol », un 1 suivi de 100 zéros."],
+["Galilée observe les lunes de Jupiter",1610,S,"Cette découverte montrait que tout ne tourne pas autour de la Terre."],["Newton publie les Principia",1687,S,"Il y expose la loi de la gravitation universelle."],["Darwin publie L’Origine des espèces",1859,S,"Le premier tirage s’est vendu en une seule journée."],["Mendeleïev publie son tableau périodique",1869,S,"Il a laissé des cases vides pour des éléments encore inconnus."],["Marie Curie reçoit son premier prix Nobel",1903,S,"Elle partage le prix de physique avec Pierre Curie et Henri Becquerel."],["Einstein publie la relativité restreinte",1905,S,"Il a publié la même année trois autres articles majeurs."],["Naissance de la brebis Dolly",1996,S,"Elle a été le premier mammifère cloné à partir d’une cellule adulte."],["Première image d’un trou noir",2019,S,"Elle a été obtenue en combinant des radiotélescopes répartis sur toute la planète."],
+["Première projection publique des frères Lumière",1895,P,"Selon la légende, le public aurait reculé devant le train qui arrive en gare."],["Le Chanteur de jazz, premier film parlant à succès",1927,P,"Première réplique : « Vous n’avez encore rien entendu ! »"],["Les Beatles à l’Ed Sullivan Show",1964,P,"Environ 73 millions de téléspectateurs américains les ont regardés."],["Pac-Man",1980,P,"Son créateur voulait séduire un public plus large que les amateurs de jeux de tir."],["Sortie de l’album Thriller",1982,P,"C’est l’un des albums les plus vendus de tous les temps."],["Premier épisode des Simpson en série",1989,P,"Elle est devenue l’une des séries les plus longues de la télévision américaine."],["Sortie du film Titanic de James Cameron",1997,P,"Il a été le premier film à dépasser le milliard de dollars de recettes."]);
+const EM=["🐺","🏺","🔺","🗡️","🌋","👑","🏹","⚔️","🐀","📖","🏰","⛵","☀️","⛓️","🎩","💥","🕊️","📞","🗼","🥇","✈️","🚢","🪖","💊","🍎","🪂","🧬","🛰️","🌕","🎸","🌌","🚴","🎮","🧱","🌐","⚽","⚡","💶","▶️","📱","🏆","🏀","🏃","📏","🤸","🏊","🐬","💻","💬","🔍","🔭","🍏","🐢","⚗️","☢️","🧠","🐑","⚫","🎞️","🎷","🎶","👾","🧟","📺","🎬"];
+E.forEach((e,i)=>e[4]=EM[i]);
+E.push(["Bataille de Marathon",-490,H,"Selon la légende, un messager aurait couru jusqu’à Athènes pour annoncer la victoire.","🏃"],["Mort d’Alexandre le Grand",-323,H,"Il est mort à Babylone à 32 ans, sans avoir désigné de successeur clair.","🏛️"],["Chute de l’Empire romain d’Occident",476,H,"Le dernier empereur, Romulus Augustule, était un adolescent déposé par Odoacre.","🏺"],["Bataille de Poitiers",732,H,"Charles Martel y a arrêté une armée venue d’al-Andalus.","🛡️"],["Signature de la Magna Carta",1215,H,"Le roi Jean sans Terre l’a scellée sous la pression de ses barons.","📜"],["Mort de Jeanne d’Arc",1431,H,"Elle a été brûlée à Rouen à environ 19 ans.","🔥"],["Traité de Versailles",1919,H,"Il a été signé dans la galerie des Glaces, là où l’Empire allemand avait été proclamé en 1871.","🖋️"],["Découverte de la tombe de Toutânkhamon",1922,H,"Howard Carter a trouvé une tombe presque intacte dans la Vallée des Rois.","🏺"],["Indépendance de l’Inde",1947,H,"Gandhi n’a pas assisté aux célébrations officielles à Delhi.","🕊️"],
+["Naissance de Mickey Mouse dans Steamboat Willie",1928,P,"Walt Disney a lui-même prêté sa voix à Mickey pendant des années.","🐭"],["Première aventure de Tintin",1929,P,"Elle est d’abord parue dans un supplément pour la jeunesse d’un journal belge.","🐕"],["Sortie de Casablanca",1942,P,"Le film est sorti avant la conférence de Casablanca, qui s’est tenue début 1943.","🎬"],["Premier épisode de Doctor Who",1963,P,"La série britannique est l’une des plus longues de la science-fiction à la télévision.","🌀"],["Sortie de Pulp Fiction",1994,P,"Le film a remporté la Palme d’or à Cannes.","🍔"],["Sortie de Toy Story",1995,P,"C’est le premier long métrage entièrement réalisé en images de synthèse.","🤠"],["Pokémon sur Game Boy",1996,P,"Au Japon, le jeu est sorti en deux versions, Rouge et Vert.","⚡"],["Sortie d’Iron Man",2008,P,"Il a lancé l’univers cinématographique de Marvel.","🦾"],
+["Machine à vapeur perfectionnée par Watt",1769,T,"James Watt a breveté un condenseur séparé qui améliorait fortement le rendement.","⚙️"],["Pile électrique de Volta",1800,T,"Elle était faite de disques de zinc et de cuivre empilés.","🔋"],["Premier télégraphe public de Morse",1844,T,"La première ligne reliait Washington à Baltimore.","📡"],["Ampoule à incandescence d’Edison",1879,T,"Edison a testé des centaines de matériaux pour le filament.","💡"],["Première liaison radio transatlantique de Marconi",1901,T,"Le signal reçu à Terre-Neuve était la lettre S en morse.","📻"],["Ordinateur ENIAC",1946,T,"Il occupait une grande salle et pesait environ 30 tonnes.","🖥️"],["Invention du transistor",1947,T,"Il a remplacé les tubes à vide et ouvert la voie aux puces électroniques.","🔌"],["Lancement du premier Macintosh",1984,T,"Sa publicité a été diffusée pendant le Super Bowl.","🖱️"],["Naissance de Facebook",2004,T,"Le site a d’abord été réservé aux étudiants de Harvard.","👥"],
+["Ératosthène mesure la circonférence de la Terre",-240,S,"Il a comparé l’ombre d’un bâton à deux endroits différents d’Égypte.","📏"],["Copernic publie sa théorie héliocentrique",1543,S,"Selon la tradition, il aurait reçu un exemplaire imprimé de son livre peu avant sa mort.","🪐"],["Harvey décrit la circulation du sang",1628,S,"Il a montré que le sang circule en circuit fermé grâce au cœur.","🫀"],["Pasteur teste son vaccin contre la rage",1885,S,"Le premier patient était un enfant de neuf ans, Joseph Meister.","💉"],["Röntgen découvre les rayons X",1895,S,"Sa première radiographie célèbre est celle de la main de sa femme.","🩻"],["Becquerel découvre la radioactivité",1896,S,"Il étudiait des sels d’uranium posés sur des plaques photographiques.","☢️"],["Séquençage du génome humain achevé",2003,S,"Le projet a duré treize ans et mobilisé des équipes du monde entier.","🧬"],["Découverte du boson de Higgs",2012,S,"Elle a été annoncée au CERN, près de Genève.","⚛️"],
+["Premier tournoi de Wimbledon",1877,Z,"Il n’y avait alors qu’un seul tournoi, le simple messieurs.","🎾"],["Fondation de la FIFA",1904,Z,"Elle a été fondée à Paris par sept pays européens.","🌍"],["Premières 24 Heures du Mans",1923,Z,"La course est devenue un symbole d’endurance automobile.","🏎️"],["Premiers Jeux olympiques d’hiver",1924,Z,"Ils se sont tenus en France, à Chamonix.","⛷️"],["Rocky Marciano prend sa retraite invaincu",1956,Z,"Il a pris sa retraite avec 49 victoires et aucune défaite.","🥊"],["La « main de Dieu » de Maradona",1986,Z,"Elle est survenue en quart de finale de la Coupe du monde, contre l’Angleterre.","🧤"],["Première Coupe du monde féminine de football",1991,Z,"Les États-Unis l’ont remportée.","⚽"],["Usain Bolt court le 100 m en 9 s 58",2009,Z,"Ce record du monde a été établi à Berlin.","⚡"]);
+const fy=y=>y<0?Math.abs(y)+" av. J.-C.":String(y);
+const chip=c=>'<span class="cat" style="--c:'+COL[c]+'"><i></i>'+c+'</span>';
+let deck,line,cur,busy,pend,pl,pi,mode,PK=0;
+function ov(h){$("ec").innerHTML=h;$("end").classList.add("on")}
+const PKS=[{n:"Mélange",f:()=>E},...["Histoire","Pop culture","Technologie","Sciences","Sport"].map(c=>({n:c,f:()=>E.filter(e=>e[2]===c)})),{n:"XXᵉ siècle",f:()=>E.filter(e=>e[1]>=1900&&e[1]<2000)}];
+let AC=null,SND=true;try{SND=localStorage.getItem("snd")!=="0"}catch(_){}
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(_){}}if(AC&&AC.state==="suspended")AC.resume();return AC}
+function tone(fr,t,d,ty,v){const a=ac();if(!a||!SND)return;const o=a.createOscillator(),g=a.createGain(),s=a.currentTime+t;o.type=ty||"sine";o.frequency.setValueAtTime(fr,s);g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(v||.15,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g);g.connect(a.destination);o.start(s);o.stop(s+d+.05)}
+function vib(p){try{SND&&navigator.vibrate&&navigator.vibrate(p)}catch(_){}}
+const SFX={pick(){tone(520,0,.06,"triangle",.08);vib(8)},drop(){tone(140,0,.12,"sine",.25);vib(15)},flip(){tone(900,0,.05,"square",.05);tone(600,.05,.07,"square",.05);vib(10)},
+ good(m){[523,659,784,1047,1319].slice(0,Math.min(2+m,5)).forEach((fr,i)=>tone(fr,i*.08,.25,"triangle",.14));vib(m>2?[30,40,30,40,60]:[40])},
+ bad(){tone(180,0,.3,"sawtooth",.12);tone(130,.12,.35,"sawtooth",.12);vib([90,50,90])},
+ joker(){[880,1175,1568].forEach((fr,i)=>tone(fr,i*.07,.2,"sine",.12));vib(20)},
+ end(w){(w?[523,659,784,1047]:[392,330,262]).forEach((fr,i)=>tone(fr,i*.15,.35,"triangle",.14))}};
+const ERAS=[["Antiquité","#a89f8d","rgba(168,159,141,.15)"],["Moyen Âge","#d2b46a","rgba(210,180,106,.15)"],["Temps modernes","#b5707a","rgba(181,112,122,.15)"],["XIXᵉ siècle","#9a8466","rgba(154,132,102,.15)"],["Époque contemporaine","#6fa6d6","rgba(111,166,214,.15)"]];
+const era=y=>ERAS[y<500?0:y<1500?1:y<1800?2:y<1945?3:4];
+const SEL={m:1,p:0,g:true};let GUESS=true;
+const PIC=["🌍","📜","🎬","💡","🔬","🏅","🕰️"];
+function tile(k,v,on,ic,t,s,c){return '<button class="tile'+(on?' on':'')+'" data-k="'+k+'" data-v="'+v+'" style="--c:'+(c||"transparent")+'"><span class="ti">'+ic+'</span><b>'+t+'</b><small>'+s+'</small></button>'}
+function menu(){home()}
+function home(){
+ $("end").classList.remove("on");$("home").classList.add("on");
+ $("hm").innerHTML='<h1>Frise</h1><p class="sub">Placez les cartes dans l’ordre chronologique.</p>'
+ +'<h3>Mode</h3><div class="row">'+tile("m",1,SEL.m===1,"👤","Solo","3 vies, les séries font grimper le score")+tile("m",2,SEL.m===2,"⚔️","Duel","Chacun son tour sur la même frise")+'</div>'
+ +'<h3>Thème</h3><div class="grid">'+PKS.map((p,k)=>tile("p",k,SEL.p===k,PIC[k],p.n,p.f().length+" cartes",COL[p.n])).join("")+tile("p",-1,SEL.p<0,"🎲","Au hasard","Un thème surprise")+'</div>'
+ +'<label class="tg"><span><b>Bonus de précision</b><small>Deviner l’année exacte à chaque carte</small></span><input type="checkbox"'+(SEL.g?' checked':'')+' onchange="SEL.g=this.checked"></label>'
+ +'<button class="go play" onclick="start(SEL.m,SEL.p)">Jouer</button>'}
+function packs(n){ov('<h2>Choisir un paquet</h2>'+PKS.map((p,k)=>'<button class="go alt" onclick="start('+n+','+k+')">'+p.n+'</button>').join("")+'<br><button class="go" onclick="start('+n+',-1)">Au hasard</button>')}
+function learn(){
+ const L=$("ll");L.innerHTML="";
+ [...PKS[PK].f()].sort((a,b)=>a[1]-b[1]).forEach(c=>{const r=document.createElement("div");r.className="lr";r.dataset.r=c.r||"";
+  r.innerHTML='<b>'+fy(c[1])+'</b><div>'+chip(c[2])+'<div>'+(c[4]||"")+" "+c[0]+'</div><p>'+c[3]+'</p></div>';L.appendChild(r)});
+ $("end").classList.remove("on");$("learn").classList.add("on");
+ let pos=0,stop=false;L.scrollTop=0;L.onpointerdown=L.onwheel=()=>{stop=true};
+ const step=()=>{if(stop||!$("learn").classList.contains("on"))return;pos+=1;L.scrollTop=pos;requestAnimationFrame(step)};
+ requestAnimationFrame(step)}
+function start(n,pk){$("home").classList.remove("on");GUESS=SEL.g;mode=n;if(pk<0)pk=1+Math.floor(Math.random()*5);PK=pk||0;ac();E.forEach(e=>{e.o=e.r=undefined});deck=[...PKS[PK].f()].sort(()=>Math.random()-.5);line=[];pl=[];
+ for(let k=0;k<n;k++)pl.push({n:n>1?"J"+(k+1):"Solo",lives:3,joker:1,streak:0,score:0});
+ pi=0;pend=null;$("end").classList.remove("on");note("Paquet : "+PKS[PK].n+" ("+deck.length+" cartes)");draw()}
+function head(){
+ $("pls").innerHTML=pl.map((p,k)=>'<div class="pl'+(k===pi?' on':'')+'"'+(mode>1?' style="--pc:'+["var(--ink)","#c8ff00"][k]+'"':'')+'><small>'+p.n+'</small><span class="sc">'+p.score+'</span><span class="h">'+"●".repeat(p.lives)+'</span>'+(p.streak>1?'<em>×'+Math.min(p.streak,5)+'</em>':'')+'</div>').join("");
+ $("joker").disabled=busy||pl[pi].joker<1||line.length<3}
+function draw(){
+ if(!deck.length)return over();
+ cur=deck.pop();busy=false;pend=null;
+ $("cc").outerHTML=chip(cur[2]).replace('class="cat"','class="cat" id="cc"');
+ $("ct").textContent=cur[0];$("ce").textContent=cur[4]||"";
+ const t=$("tilt");t.classList.remove("gone","rel");reset();
+ const c=$("card");c.classList.remove("deal");void c.offsetWidth;c.classList.add("deal");
+ msg((mode>1?pl[pi].n+" : ":"")+(line.length?"où va cette carte ?":"posez la première carte sur la frise."));render()}
+let NT;function note(t){$("an").textContent=t;clearTimeout(NT);NT=setTimeout(()=>{$("an").textContent=""},4500)}
+function msg(t,c){const m=$("msg");m.textContent=t;m.className=c||""}
+function tcard(c,cls){const d=document.createElement("div");d.className="t "+cls;d.dataset.o=mode>1&&c.o!==undefined?c.o:"";if(cls==="fl")d.style.setProperty("--ec",era(c[1])[1]);
+ d.innerHTML='<div class="in"><div class="f"><span class="em">'+(c[4]||"")+'</span>'+chip(c[2])+'<span class="n">'+c[0]+'</span><span class="q">?</span></div><div class="b"><span class="em">'+(c[4]||"")+'</span>'+chip(c[2])+'<strong>'+fy(c[1])+'</strong><span class="n">'+c[0]+'</span><span class="er">'+era(c[1])[0]+'</span></div></div>';return d}
+function render(){
+ const L=$("line");L.innerHTML="";
+ const items=line.map(c=>({c,k:"fl"}));
+ if(pend)items.splice(pend.i,0,{c:pend.c,k:"pend"});
+ const slot=(i,lab,w)=>{const b=document.createElement("button");b.className="slot"+(items.length?"":" big");b.innerHTML='<span>+</span>'+(lab?'<em>'+lab+'</em>':"");if(w)b.style.minWidth=w+"px";b.dataset.i=i;b.disabled=busy;b.setAttribute("aria-label","Placer ici");b.onclick=()=>place(i);L.appendChild(b)};
+ slot(0);
+ items.forEach((o,j)=>{const d=tcard(o.c,o.k);d.style.setProperty("--ty",((j-(items.length-1)/2)*-3)+"deg");
+  d.onclick=()=>{if(o.k==="fl")note(fy(o.c[1])+" : "+o.c[3])};
+  L.appendChild(d);if(o.k==="pend")pend.el=d;const nx=items[j+1];let lab="",w=0;if(nx&&o.k==="fl"&&nx.k==="fl"){const g=nx.c[1]-o.c[1];lab=g<100?g+(g>1?" ans":" an"):g<200?g+" ans":Math.round(g/100)+" siècles";w=Math.min(150,34+Math.round(9*Math.log2(g+1)))}slot(j+1,lab,w)});
+ head();
+ const fl=[...L.querySelectorAll(".t:not(.pend)")];
+ L.style.background=fl.length?"linear-gradient(to right,"+fl.map((d,j)=>era(line[j][1])[2]+" "+((d.offsetLeft+d.offsetWidth/2)/L.scrollWidth*100).toFixed(1)+"%").join(",")+")":"none";
+ if(pend)pend.el.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"})}
+function guess(y,cb){
+ const W=y<1500?400:y<1800?150:y<1900?60:40,lo=Math.round(y-W*(.15+Math.random()*.7)),hi=lo+W,r=$("gr");
+ r.min=lo;r.max=hi;r.value=Math.round(lo+W/2);$("gv").textContent=fy(+r.value);
+ $("gt").textContent="Bonus de précision : estimez l’année ("+fy(lo)+" à "+fy(hi)+")";
+ $("guess").classList.add("on");
+ const done=g=>{$("guess").classList.remove("on");cb(g,W)};
+ r.oninput=()=>$("gv").textContent=fy(+r.value);
+ $("gok").onclick=()=>done(+r.value);$("gsk").onclick=()=>done(null)}
+function place(i){
+ if(busy)return;busy=true;cur.o=pi;SFX.drop();
+ const t=$("tilt");t.classList.remove("rel");t.classList.add("gone");
+ pend={i,c:cur};render();
+ const y=cur[1],ok=(i===0||line[i-1][1]<=y)&&(i===line.length||y<=line[i][1]);
+ const go=(g,W)=>setTimeout(()=>{pend.el.style.setProperty("--ec",era(cur[1])[1]);pend.el.classList.add("fl");SFX.flip();msg("Verso…");setTimeout(()=>resolve(ok,g,W),1100)},250);GUESS?guess(y,go):go(null,0)}
+function resolve(ok,g,W){
+ const p=pl[pi],y=cur[1],el=pend.el;
+ $("an").textContent="";
+ if(ok){
+  p.streak++;cur.r="ok";const m=Math.min(p.streak,5);let b=0;
+  if(g!==null){const e=Math.abs(g-y);b=e===0?5:e<=W/20?3:e<=W/8?1:0}
+  const gain=10*m+b;p.score+=gain;
+  let t="Bien placé ! +"+gain+(m>1?" (série ×"+m+")":"")+(b?" dont précision +"+b:"");
+  if(p.streak%5===0){p.joker++;t+=" · joker gagné !";setTimeout(SFX.joker,600)}
+  SFX.good(m);msg(t,"ok");note(fy(y)+" : "+cur[3]);burst(el.getBoundingClientRect(),24+m*14);
+  const i=pend.i;line.splice(i,0,cur);pend=null;render();
+  document.querySelectorAll("#line .t")[i].classList.add("win");
+  setTimeout(next,2800)}
+ else{p.streak=0;p.lives--;if(!cur.r)cur.r="ko";SFX.bad();msg("Raté : c’était "+fy(y),"ko");el.classList.add("bad");head();
+  setTimeout(()=>{pend=null;render()},1300);setTimeout(next,2800)}}
+function next(){if(pl[pi].lives<=0)return over();if(mode>1)pi=1-pi;draw()}
+function over(){
+ let t,s;SFX.end(mode>1||pl[0].lives>0);
+ if(mode>1){const a=pl[0],b=pl[1],w=a.lives<=0?1:b.lives<=0?0:a.score===b.score?-1:a.score>b.score?0:1;
+  t=w<0?"Égalité":pl[w].n+" gagne";s=a.n+" : "+a.score+" pts · "+b.n+" : "+b.score+" pts"}
+ else{t=deck.length?"Partie terminée":"Frise complète";s=pl[0].score+" pts · "+line.length+" cartes placées"}
+ ov('<h2>'+t+'</h2><p>'+s+'</p><button class="go" onclick="start('+mode+','+PK+')">Rejouer</button><button class="go alt" onclick="learn()">Apprendre</button><button class="go alt" onclick="menu()">Menu</button>')}
+const tl=$("tilt");let drag=null;
+const clamp=(v,m)=>Math.max(-m,Math.min(m,v));
+function reset(){["--dx","--dy","--rx","--ry"].forEach(k=>tl.style.setProperty(k,k[1]=="d"?"0px":"0deg"));tl.style.setProperty("--s",1)}
+function hotSlot(x,y){let h=null;document.querySelectorAll(".slot").forEach(s=>{const r=s.getBoundingClientRect(),m=16,
+ inn=x>r.left-m&&x<r.right+m&&y>r.top-40&&y<r.bottom+40;s.classList.toggle("hot",inn&&!h);if(inn&&!h)h=s});return h}
+tl.addEventListener("pointerdown",e=>{if(busy)return;SFX.pick();tl.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY};tl.classList.remove("rel");tl.style.setProperty("--s",1.08)});
+tl.addEventListener("pointermove",e=>{if(!drag)return;
+ tl.style.setProperty("--dx",(e.clientX-drag.x)+"px");tl.style.setProperty("--dy",(e.clientY-drag.y)+"px");
+ tl.style.setProperty("--ry",clamp(e.movementX*2,30)+"deg");tl.style.setProperty("--rx",clamp(-e.movementY*2,30)+"deg");
+ const st=$("strip");if(e.clientX<50)st.scrollLeft-=10;else if(e.clientX>innerWidth-50)st.scrollLeft+=10;
+ hotSlot(e.clientX,e.clientY)});
+function up(e){if(!drag)return;drag=null;const h=hotSlot(e.clientX,e.clientY);
+ document.querySelectorAll(".slot.hot").forEach(s=>s.classList.remove("hot"));
+ if(h&&e.type==="pointerup")place(+h.dataset.i);else{tl.classList.add("rel");reset()}}
+tl.addEventListener("pointerup",up);tl.addEventListener("pointercancel",up);
+function burst(r,n){
+ const cx=r.left+r.width/2,cy=r.top+r.height/2,cols=["#c8ff00","#d9ff3f","#111111","#7a7a76","#b7e600"];
+ try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}
+ const ring=document.createElement("div");ring.className="fx";ring.style.cssText+="width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid #c8ff00;left:"+cx+"px;top:"+cy+"px";
+ document.body.appendChild(ring);
+ ring.animate([{transform:"scale(.3)",opacity:1},{transform:"scale(7)",opacity:0}],{duration:700,easing:"ease-out"}).onfinish=()=>ring.remove();
+ for(let k=0;k<n;k++){const p=document.createElement("div");p.className="fx";const s=6+Math.random()*8;
+  p.style.cssText+="width:"+s+"px;height:"+s*(Math.random()<.5?1:.5)+"px;background:"+cols[k%5]+";left:"+cx+"px;top:"+cy+"px";
+  const a=Math.random()*6.283,d=90+Math.random()*190;
+  document.body.appendChild(p);
+  p.animate([{transform:"translate(0,0) rotate(0)",opacity:1},{transform:"translate("+Math.cos(a)*d+"px,"+(Math.sin(a)*d+60)+"px) rotate("+(Math.random()*720-360)+"deg)",opacity:0}],{duration:800+Math.random()*600,easing:"cubic-bezier(.1,.8,.3,1)"}).onfinish=()=>p.remove()}}
+$("joker").onclick=()=>{
+ const p=pl[pi];if(busy||p.joker<1||line.length<3)return;p.joker--;SFX.joker();render();
+ const y=cur[1];let i=0;
+ while(!((i===0||line[i-1][1]<=y)&&(i===line.length||y<=line[i][1])))i++;
+ const j=i<line.length&&(i===0||Math.random()<.5)?i+1:i-1;
+ [i,j].forEach(n=>{const s=document.querySelector('.slot[data-i="'+n+'"]');s&&s.classList.add("hint")});
+ const s0=document.querySelector('.slot[data-i="'+i+'"]');s0&&s0.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"});
+ msg("Joker : la carte va dans l’un des deux emplacements en vert.")};
+$("snd").classList.toggle("off",!SND);
+$("snd").onclick=()=>{SND=!SND;try{localStorage.setItem("snd",SND?"1":"0")}catch(_){}$("snd").classList.toggle("off",!SND);if(SND){ac();SFX.pick()}};
+$("lx").onclick=()=>{$("learn").classList.remove("on");$("end").classList.add("on")};
+$("hm").onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;SEL[b.dataset.k]=+b.dataset.v;home()};
+menu();
+</script>
+</body>
+</html>
